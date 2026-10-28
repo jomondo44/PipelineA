@@ -66,7 +66,9 @@ def ensure_vrm_addon():
         pass
     for name in names:
         try:
-            addon_utils.enable(name, default_set=False)
+            # default_set=True registers it in Preferences like ticking its checkbox does;
+            # without that, add-ons that read their own preferences (VRM does) crash on import
+            addon_utils.enable(name, default_set=True)
         except Exception:  # noqa: BLE001
             continue
         if _has_op("import_scene", "vrm"):
