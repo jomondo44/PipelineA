@@ -1,0 +1,21 @@
+# Custom rig: humanoid bone name -> the bone's name in your armature.
+# Use with:  avatar.rig_preset: custom   avatar.bone_map: bone_map.yaml
+# Leave a line out if your rig has no such bone. hips is required.
+hips: pelvis
+spine: spine_01
+chest: spine_02
+upperChest: spine_03
+neck: neck_01
+head: head
+leftUpperArm: upperarm_l
+leftLowerArm: lowerarm_l
+leftHand: hand_l
+rightUpperArm: upperarm_r
+rightLowerArm: lowerarm_r
+rightHand: hand_r
+leftUpperLeg: thigh_l
+leftLowerLeg: calf_l
+leftFoot: foot_l
+rightUpperLeg: thigh_r
+rightLowerLeg: calf_r
+rightFoot: foot_r

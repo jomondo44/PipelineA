@@ -1,0 +1,57 @@
+# avatarpipe shot config. Paths are relative to this file.
+# Run:  avatarpipe run shot.yaml        Check:  avatarpipe status shot.yaml
+project: my_shot
+workdir: ./runs/{project}
+
+input:
+  performance: footage/me.mp4        # you, acting it out (locked-off camera works best)
+  clean_plate: footage/empty.mp4     # same camera, nobody in frame (video or still) -> mode: replace
+  background: null                   # different scene (video or still)            -> mode: new_scene
+  fps: null                          # null = keep source fps
+  max_height: 720                    # 720 is a good CPU default; 1080 for finals
+  start: 0                           # trim, seconds
+  end: null
+
+track:
+  pose_model: full                   # lite (fast) | full | heavy (slow, best)
+  face: true                         # facial expressions -> avatar shape keys
+  min_confidence: 0.5
+  smoothing: {min_cutoff: 1.2, beta: 0.02}   # lower min_cutoff = smoother/floatier
+
+solve:
+  focal_mm: 28                       # 35mm-equivalent lens. Most phone main cameras: 24-28
+  camera_height_m: 1.2               # lens height off the floor
+  camera_tilt_deg: 0                 # + = tilted down
+  torso_length_m: null               # your shoulder-to-hip length if you want exact scale
+
+matte:
+  enabled: true                      # paint you out using the clean plate (mode: replace)
+  model: selfie_multiclass
+  dilate_px: 12                      # grow the matte so no edges/hair peek out
+  feather_px: 6
+
+avatar:
+  path: avatars/character.vrm        # .vrm (VRoid etc.) | .glb | .fbx (Mixamo) | .blend
+  rig_preset: auto                   # auto | vrm | vroid | mixamo | custom
+  bone_map: null                     # custom: yaml of humanoid name -> your bone name
+  face_preset: auto                  # auto | arkit | vroid | none | custom
+  twist_axis: X                      # if the torso/head faces backwards, try -X or Z
+  scale: auto                        # match avatar legs to yours, or a number
+
+blender:
+  executable: blender                # full path if blender isn't on PATH
+  engine: EEVEE                      # EEVEE (fast) | CYCLES (CPU, shadows on real floor) | WORKBENCH (drafts)
+  samples: 16
+  shadow_catcher: true               # Cycles only
+  sun_strength: 3.0
+  sun_angle_deg: [50, 0, 30]         # match the key light in your footage
+  save_blend: true                   # runs/<project>/render/scene.blend to tweak by hand
+
+composite:
+  mode: replace                      # replace | new_scene | overlay
+  avatar_offset_px: [0, 0]
+  grade: {brightness: 0.0, contrast: 1.0, saturation: 1.0, gamma: 1.0}   # avatar only
+  grain: 4                           # 0-20 film/sensor grain over the final frame
+  crf: 18
+  audio: true
+  output: final.mp4                  # relative to workdir
