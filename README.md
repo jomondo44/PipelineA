@@ -49,7 +49,23 @@ Every stage is cached. If you change only `blender.engine`, only `render` and `c
 
 For facial animation, the avatar needs ARKit-named shape keys ("perfect sync" models) or VRoid's `Fcl_*` keys. With `face_preset: auto`, the pipeline detects which set the model has.
 
-## Run it
+## Run it in the browser (GUI)
+
+```bash
+pip install -e ".[gui]"
+avatarpipe gui shots/take1.yaml
+```
+
+This opens a page in your browser at http://127.0.0.1:7860. It only listens on your own machine. It has four tabs:
+
+1. **Footage & avatar**: choose your clips and avatar. They're copied into the shot's `footage/` and `avatars/` folders.
+2. **Settings**: mode, lens, camera height, render engine, lighting, smoothing.
+3. **Run**: *Track & solve*, *Make tracking preview*, *Render everything*, rerun one stage, *Stop*, a live log and the stage status.
+4. **Results**: the tracking preview and the final video, plus a button that opens the output folder.
+
+*New shot* creates a config file and its folders. The GUI and the command line read and write the same YAML file, so you can switch between them freely. Saving from the GUI drops the comments from the YAML file.
+
+## Run it from the command line
 
 ```bash
 avatarpipe init shots/take1.yaml                 # starter config + footage/ avatars/ folders

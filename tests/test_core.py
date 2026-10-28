@@ -152,7 +152,11 @@ def test_pipeline_caches_and_invalidates(tmp_path):
     pipe.run(Context(cfg=cfg, workdir=tmp_path))
     assert calls == ["a", "b", "b", "a", "b"]      # upstream change cascades
     pipe.run(Context(cfg=cfg, workdir=tmp_path), force=("a",))
-    assert calls[-2:] == ["a", "b"] or calls[-1] == "a"
+    assert calls[-2:] == ["a", "b"]                # forcing a stage reruns what depends on it
+    n = len(calls)
+    cfg["track"]["x"] = 2.0                        # 2 == 2.0: no rerun
+    pipe.run(Context(cfg=cfg, workdir=tmp_path))
+    assert len(calls) == n
 
 
 def test_pipeline_only_requires_fresh_deps(tmp_path):

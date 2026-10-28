@@ -7,6 +7,7 @@
   avatarpipe status shot.yaml           what's done / stale
   avatarpipe preview shot.yaml          tracking overlay video to sanity-check the solve
   avatarpipe clean shot.yaml [stage..]  forget cached results
+  avatarpipe gui [shot.yaml]            browser GUI (pip install -e ".[gui]")
 """
 from __future__ import annotations
 
@@ -25,6 +26,13 @@ TEMPLATE = Path(__file__).resolve().parent / "templates" / "config.yaml"
 
 
 def _setup_logging(verbose: bool) -> None:
+    # Windows pipes default to cp1252, which can't print ✓ ▶ → ; never crash on output
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(errors="replace")
+            except (ValueError, OSError):
+                pass
     logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO, format="%(message)s",
                         stream=sys.stdout)
     for noisy in ("absl", "PIL"):
@@ -140,6 +148,15 @@ def cmd_preview(a) -> int:
     return 0
 
 
+def cmd_gui(a) -> int:
+    try:
+        from . import gui
+    except SystemExit as e:
+        print(e)
+        return 1
+    return gui.launch(a.config, port=a.port, open_browser=not a.no_browser)
+
+
 def cmd_clean(a) -> int:
     ctx = _ctx(a.config)
     state = ctx.workdir / ".state"
@@ -180,6 +197,12 @@ def main(argv=None) -> int:
         s = sub.add_parser(name, help=hlp)
         s.add_argument("config")
         s.set_defaults(fn=fn)
+
+    s = sub.add_parser("gui", help="open the browser GUI")
+    s.add_argument("config", nargs="?", default="shots/take1.yaml")
+    s.add_argument("--port", type=int, default=7860)
+    s.add_argument("--no-browser", action="store_true", help="don't open a browser tab")
+    s.set_defaults(fn=cmd_gui)
 
     s = sub.add_parser("clean", help="forget cached stage results")
     s.add_argument("config")

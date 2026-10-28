@@ -58,6 +58,18 @@ class Stage:
     describe: str = ""
 
 
+def _canon(v):
+    """Make equal settings hash equally: 28 == 28.0, 1.2000000001 == 1.2."""
+    if isinstance(v, dict):
+        return {k: _canon(x) for k, x in v.items()}
+    if isinstance(v, (list, tuple)):
+        return [_canon(x) for x in v]
+    if isinstance(v, float):
+        v = round(v, 6)
+        return int(v) if v.is_integer() else v
+    return v
+
+
 def _cfg_get(cfg: dict, dotted: str):
     """'track' -> whole section; 'composite.mode' -> one key."""
     cur = cfg
@@ -97,7 +109,7 @@ class Pipeline:
         payload = {
             "stage": stage.name,
             "version": stage.version,
-            "cfg": {s: _cfg_get(ctx.cfg, s) for s in stage.sections},
+            "cfg": {s: _canon(_cfg_get(ctx.cfg, s)) for s in stage.sections},
             "inputs": [fingerprint(p) for p in stage.inputs(ctx)],
             "deps": {d: ctx.keys.get(d) for d in stage.deps},
         }
@@ -129,6 +141,7 @@ class Pipeline:
         names = self.names()
         lo = names.index(start) if start else 0
         hi = names.index(stop) if stop else len(names) - 1
+        rerun: set[str] = set()   # anything that runs makes everything downstream of it run too
         for i, stage in enumerate(self.stages):
             if not stage.enabled(ctx.cfg):
                 ctx.keys[stage.name] = "disabled"
@@ -137,9 +150,13 @@ class Pipeline:
             key = self.key_for(stage, ctx)
             ctx.keys[stage.name] = key
             selected = (stage.name in only) if only else (lo <= i <= hi)
+            upstream_ran = any(d in rerun for d in stage.deps)
             if not selected:
-                yield stage, key, "skip" if self.is_fresh(ctx, stage, key) else "stale"
-            elif stage.name in force or "all" in force or not self.is_fresh(ctx, stage, key):
+                fresh = self.is_fresh(ctx, stage, key) and not upstream_ran
+                yield stage, key, "skip" if fresh else "stale"
+            elif (stage.name in force or "all" in force or upstream_ran
+                  or not self.is_fresh(ctx, stage, key)):
+                rerun.add(stage.name)
                 yield stage, key, "run"
             else:
                 yield stage, key, "skip"
@@ -169,6 +186,8 @@ class Pipeline:
             planned.add(stage.name)
             if ctx.dry_run:
                 continue
+            # forget the old result first: an interrupted rerun must not look finished
+            self._state_path(ctx, stage.name).unlink(missing_ok=True)
             t0 = time.time()
             outputs = [str(o) for o in (stage.run(ctx) or [])]
             missing = [o for o in outputs if not Path(o).exists()]
