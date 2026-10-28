@@ -43,13 +43,25 @@ def make_footage(d: Path):
     return world, image, bs
 
 
-def fake_track(world, image, bs):
+def face_mats(n: int, fps: float) -> np.ndarray:
+    """Head turning +-40 degrees (positive = face turns toward image right)."""
+    out = np.zeros((n, 4, 4), np.float32)
+    for i in range(n):
+        a = np.radians(40 * np.sin(2 * np.pi * 0.5 * i / fps))
+        m = np.eye(4)
+        m[:3, :3] = [[np.cos(a), 0, np.sin(a)], [0, 1, 0], [-np.sin(a), 0, np.cos(a)]]
+        m[:3, 3] = [0, 0, -60]
+        out[i] = m.T  # MediaPipe-style layout, translation in the bottom row
+    return out
+
+
+def fake_track(world, image, bs, face=False):
     def run(ctx: Context):
         meta = ctx.read_json("ingest", "meta.json")
         n = meta["frames"]
         out = ctx.path("track", "tracking.npz")
         np.savez_compressed(out, pose_world=world[:n], pose_image=image[:n], face_bs=bs[:n],
-                            face_mat=np.full((n, 4, 4), np.nan, np.float32),
+                            face_mat=face_mats(n, meta["fps"]) if face else np.full((n, 4, 4), np.nan, np.float32),
                             fps=np.float32(meta["fps"]), size=np.array([meta["width"], meta["height"]], np.int32))
         return [out]
     return run
@@ -78,6 +90,7 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--engine", default="CYCLES")
     ap.add_argument("--mode", default="replace")
+    ap.add_argument("--face", action="store_true", help="add a face-tracked head turn")
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -96,7 +109,7 @@ def main():
     cfg_path.write_text(yaml.safe_dump(shot, sort_keys=False))
     cfg = config.load(cfg_path)
     pipe = build()
-    pipe.by_name["track"].run = fake_track(world, image, bs)
+    pipe.by_name["track"].run = fake_track(world, image, bs, face=a.face)
     pipe.by_name["matte"].run = fake_matte(image)
     pipe.run(Context(cfg=cfg, workdir=Path(cfg["workdir"])))
 

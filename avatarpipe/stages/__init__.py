@@ -2,17 +2,23 @@
 from __future__ import annotations
 
 from ..pipeline import Pipeline, Stage
-from . import composite, ingest, matte, render, solve, track
+from . import composite, ingest, lipsync, matte, render, solve, track
 
 
 def build() -> Pipeline:
     return Pipeline([
         Stage("ingest", ingest.run, sections=("input", "composite.background_scale"),
-              inputs=ingest.inputs, describe="normalize footage, clean plate, background"),
-        Stage("track", track.run, sections=("track.pose_model", "track.face", "track.min_confidence"),
-              inputs=track.inputs, deps=("ingest",), describe="MediaPipe pose + face on every frame"),
-        Stage("solve", solve.run, sections=("solve", "track.smoothing"),
-              inputs=solve.inputs, deps=("track",), describe="smooth + place body in 3D camera space"),
+              inputs=ingest.inputs, describe="normalize footage, clean plate, background", version="2"),
+        Stage("track", track.run, sections=("track.pose_model", "track.face", "track.min_confidence",
+                                            "track.face_crop", "track.face_crop_size"),
+              inputs=track.inputs, deps=("ingest",), describe="MediaPipe pose + face on every frame",
+              version="2"),
+        Stage("lipsync", lipsync.run, sections=("lipsync.recognizer",), inputs=lipsync.inputs,
+              deps=("ingest",), enabled=lipsync.enabled, describe="mouth shapes from your voice (Rhubarb)"),
+        Stage("solve", solve.run, sections=("solve", "track.smoothing", "lipsync.enabled", "lipsync.mode",
+                                            "lipsync.strength"),
+              inputs=solve.inputs, deps=("track", "lipsync"), describe="smooth + place body in 3D camera space",
+              version="2"),
         Stage("matte", matte.run, sections=("matte",), inputs=matte.inputs, deps=("ingest",),
               enabled=matte.enabled, describe="person matte for paint-out"),
         Stage("render", render.run, sections=("avatar", "blender"), inputs=render.inputs,

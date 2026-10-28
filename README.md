@@ -87,6 +87,23 @@ avatarpipe run shots/take1.yaml --only composite # just recomposite (e.g. after 
 avatarpipe run shots/take1.yaml --dry-run        # show the plan
 ```
 
+## Face and lip sync
+
+Facial expressions are tracked markerless, without dots or a mask:
+
+- **Face close-up** (`track.face_crop`, on by default): the face is tracked on a crop of your head cut from the *original* video at full resolution. In a full-body shot this gives the face tracker several times more pixels than the working-size frame. Shoot at 1080p or 4K to get the most out of it. The track log reports `face found in N/M frames`.
+- **Head rotation**: the head's turn, nod and tilt come from the face tracker. If the face is lost, the pipeline fades back to an estimate from the body landmarks. The log reports `head: from the face tracker on N/M frames`.
+- **Expressions**: blinks, brows, smiles, frowns, eye squints and mouth vowels drive the avatar's expression shape keys. VRoid models use about 20 keys, and "perfect sync" (ARKit) models get all 52 one to one. Use `avatar.face_gain` (default 1.4) to exaggerate or soften them.
+- **Lip sync from your voice** (`lipsync`): [Rhubarb Lip Sync](https://github.com/DanielSWolf/rhubarb-lip-sync) (MIT license, CPU, offline) turns your speech into mouth shapes. By default (`mode: max`) the pipeline uses whichever opens the mouth more, the camera or your voice, so talking reads clearly even when your face is tiny.
+
+Install Rhubarb once:
+
+1. Download the zip for your system from the [releases page](https://github.com/DanielSWolf/rhubarb-lip-sync/releases), for example `Rhubarb-Lip-Sync-1.14.0-Windows.zip`.
+2. Unzip the **whole folder** into a `tools` folder in the project, so you have `tools/Rhubarb-Lip-Sync-1.14.0-Windows/rhubarb.exe`. Keep its `res` folder next to it.
+3. Run `avatarpipe doctor shots/take1.yaml`. It should report `lip sync: Rhubarb at …`.
+
+If Rhubarb isn't installed, lip sync is skipped with a note and everything else still runs. Use `recognizer: pocketSphinx` for English (most accurate) or `phonetic` for any language.
+
 ## Composite modes
 
 - **`replace`**: The avatar stands where you stood in your own shot. You are painted out using the clean plate and the matte. Needs `input.clean_plate`.

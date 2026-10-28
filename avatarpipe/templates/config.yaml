@@ -15,6 +15,7 @@ input:
 track:
   pose_model: full                   # lite (fast) | full | heavy (slow, best)
   face: true                         # facial expressions -> avatar shape keys
+  face_crop: true                    # track the face on a full-res close-up of the original video
   min_confidence: 0.5
   smoothing: {min_cutoff: 1.2, beta: 0.02}   # lower min_cutoff = smoother/floatier
 
@@ -37,6 +38,13 @@ avatar:
   face_preset: auto                  # auto | arkit | vroid | none | custom
   twist_axis: X                      # if the torso/head faces backwards, try -X or Z
   scale: auto                        # match avatar legs to yours, or a number
+  face_gain: 1.4                     # expression strength (above 1 exaggerates)
+
+lipsync:
+  enabled: true                      # mouth shapes from your voice; needs Rhubarb Lip Sync (see README)
+  executable: rhubarb                # on PATH, unzipped under tools/, or a full path to rhubarb.exe
+  recognizer: pocketSphinx           # pocketSphinx (English) | phonetic (any language)
+  mode: max                          # max: camera or voice, whichever opens the mouth more | audio
 
 blender:
   executable: blender                # full path if blender isn't on PATH

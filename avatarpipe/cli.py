@@ -106,6 +106,11 @@ def cmd_doctor(a) -> int:
         if cfg["avatar"]["path"] and cfg["avatar"]["path"].lower().endswith(".vrm"):
             print("  · .vrm avatars need the free 'VRM format' Blender add-on "
                   "(Blender: Edit > Preferences > Get Extensions > search VRM)")
+        if cfg["lipsync"]["enabled"]:
+            from .stages.lipsync import INSTALL_HINT, find_rhubarb
+            rh = find_rhubarb(cfg)
+            print(f"  · lip sync: Rhubarb at {rh}" if rh else
+                  f"  · lip sync: Rhubarb not found, so it will be skipped\n      → {INSTALL_HINT}")
         if not cfg["avatar"]["path"]:
             print("  · no avatar.path: run stops after tracking/solve (useful for checking the preview first)")
     print("all good" if ok else "fix the ✗ items above")

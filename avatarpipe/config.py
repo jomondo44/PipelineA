@@ -22,6 +22,8 @@ DEFAULTS: dict[str, Any] = {
     "track": {
         "pose_model": "full",     # lite | full | heavy (heavy is slow on CPU)
         "face": True,             # ARKit-style blendshapes for facial expression
+        "face_crop": True,        # track the face on a full-resolution close-up crop (much more detail)
+        "face_crop_size": 256,    # pixels the crop is resized to before tracking
         "min_confidence": 0.5,
         "smoothing": {"min_cutoff": 1.2, "beta": 0.02, "d_cutoff": 1.0},
     },
@@ -44,9 +46,17 @@ DEFAULTS: dict[str, Any] = {
         "bone_map": None,         # yaml file for rig_preset=custom (humanoid name -> bone name)
         "face_preset": "auto",    # auto | arkit | vroid | none | custom
         "face_map": None,         # yaml for face_preset=custom
+        "face_gain": 1.4,         # expression strength; webcam-style trackers read faces a bit flat
         "twist_axis": "X",        # bone axis that should point to character's left; flip to -X if limbs twist backwards
         "scale": "auto",          # "auto" matches avatar leg length to yours, or a number
         "armature": None,         # object name, if the file has several armatures
+    },
+    "lipsync": {
+        "enabled": True,          # mouth shapes from your voice (needs Rhubarb Lip Sync installed)
+        "executable": "rhubarb",  # name on PATH, or full path to rhubarb / rhubarb.exe
+        "recognizer": "pocketSphinx",   # pocketSphinx (English, best) | phonetic (any language)
+        "mode": "max",            # max: whichever opens the mouth more, camera or audio | audio: audio only
+        "strength": 1.0,
     },
     "blender": {
         "executable": "blender",
@@ -82,6 +92,8 @@ VALID = {
     ("blender", "engine"): {"EEVEE", "CYCLES", "WORKBENCH"},
     ("composite", "mode"): {"replace", "new_scene", "overlay"},
     ("composite", "background_scale"): {"fill", "fit"},
+    ("lipsync", "recognizer"): {"pocketSphinx", "phonetic"},
+    ("lipsync", "mode"): {"max", "audio"},
 }
 
 PATH_KEYS = [

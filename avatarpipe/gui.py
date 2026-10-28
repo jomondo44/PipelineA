@@ -38,6 +38,17 @@ SETTINGS = [
     ("input.max_height", "dropdown", [480, 720, 1080], "Working resolution (height)", "Lower = faster"),
     ("track.pose_model", "dropdown", ["lite", "full", "heavy"], "Pose model", "heavy is best and slowest"),
     ("track.face", "checkbox", None, "Track facial expressions", None),
+    ("track.face_crop", "checkbox", None, "Face close-up tracking",
+     "Tracks your face on a full-resolution crop of the original video: much more expression detail"),
+    ("avatar.face_gain", "slider", (0.5, 3.0, 0.1), "Expression strength", "Above 1 exaggerates expressions"),
+    ("lipsync.enabled", "checkbox", None, "Lip sync from your voice",
+     "Needs Rhubarb Lip Sync (see README). Skipped with a note if it isn't installed"),
+    ("lipsync.recognizer", "dropdown", ["pocketSphinx", "phonetic"], "Lip sync language",
+     "pocketSphinx: English, most accurate · phonetic: any language"),
+    ("lipsync.mode", "dropdown", ["max", "audio"], "Mouth source",
+     "max: camera or voice, whichever opens the mouth more · audio: voice only"),
+    ("lipsync.executable", "text", None, "Rhubarb program",
+     "Leave as 'rhubarb' if it's on PATH or unzipped in a tools folder; otherwise the full path to rhubarb.exe"),
     ("track.smoothing.min_cutoff", "slider", (0.2, 4.0, 0.1), "Smoothing", "Lower = smoother, floatier"),
     ("track.smoothing.beta", "slider", (0.0, 0.2, 0.005), "Fast-move response", "Higher = snappier on fast moves"),
     ("avatar.rig_preset", "dropdown", ["auto", "vrm", "vroid", "mixamo", "custom"], "Rig preset", None),
@@ -327,6 +338,8 @@ def build(default_config: str) -> "gr.Blocks":
                             w = gr.Number(label=label, info=info)
                         elif kind == "checkbox":
                             w = gr.Checkbox(label=label, info=info)
+                        elif kind == "text":
+                            w = gr.Textbox(label=label, info=info)
                         else:
                             lo, hi, step = opts
                             w = gr.Slider(lo, hi, step=step, label=label, info=info)
@@ -341,7 +354,7 @@ def build(default_config: str) -> "gr.Blocks":
                     b_all = gr.Button("Render everything", variant="primary")
                     b_stop = gr.Button("Stop", variant="stop")
                 with gr.Row():
-                    force_stage = gr.Dropdown(["ingest", "track", "solve", "matte", "render", "composite"],
+                    force_stage = gr.Dropdown(["ingest", "track", "lipsync", "solve", "matte", "render", "composite"],
                                               value="render", label="Rerun one stage even if cached", scale=3)
                     b_force = gr.Button("Rerun stage", scale=1)
                     b_doctor = gr.Button("Check setup (doctor)", scale=1)

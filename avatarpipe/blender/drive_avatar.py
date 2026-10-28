@@ -292,7 +292,7 @@ def face_mapping(arm, job):
     return meshes, fmap
 
 
-def key_face(meshes, fmap, shapes, frames):
+def key_face(meshes, fmap, shapes, frames, gain=1.0):
     for m in meshes:
         kb = m.data.shape_keys.key_blocks
         for key, sources in fmap.items():
@@ -300,7 +300,7 @@ def key_face(meshes, fmap, shapes, frames):
                 continue
             block = kb[key]
             for f in range(frames):
-                v = sum(w * shapes[s][f] for s, w in sources.items() if s in shapes)
+                v = gain * sum(w * shapes[s][f] for s, w in sources.items() if s in shapes)
                 block.value = max(0.0, min(1.0, v))
                 block.keyframe_insert("value", frame=f + 1)
 
@@ -425,7 +425,7 @@ def main():
     constrain(arm, mapping, targets, job["drive"], job["avatar"]["twist_axis"])
     meshes, fmap = face_mapping(arm, job)
     if fmap:
-        key_face(meshes, fmap, m["shapes"], m["frames"])
+        key_face(meshes, fmap, m["shapes"], m["frames"], float(job["avatar"].get("face_gain", 1.0)))
 
     make_light(job)
     setup_render(job)

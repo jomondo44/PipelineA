@@ -10,7 +10,7 @@ DRIVE = {
     "hips":          {"copy_location": "hip_mid", "track": "spine_mid", "twist": "l_hip"},
     "spine":         {"track": "shoulder_mid", "twist": "l_shoulder"},
     "neck":          {"track": "ear_mid"},
-    "head":          {"track": "head_top", "twist": "l_ear"},
+    "head":          {"track": "head_top", "twist": "head_side"},
     "leftUpperArm":  {"track": "l_elbow"},
     "leftLowerArm":  {"track": "l_wrist"},
     "leftHand":      {"track": "l_hand"},
@@ -54,16 +54,34 @@ RIGS = {
 
 # Face: target shape key -> {ARKit source: weight}. Values are summed and clamped to 0..1.
 FACES = {
+    # VRoid Studio's standard expression keys. Negative weights subtract, so a key can
+    # mean "this but not that" (sad brows = inner brows up WITHOUT the outer brows).
+    # Keys a model doesn't have are skipped.
     "vroid": {
-        "Fcl_MTH_A": {"jawOpen": 1.0},
-        "Fcl_MTH_O": {"mouthFunnel": 1.0},
-        "Fcl_MTH_U": {"mouthPucker": 1.0},
+        # mouth vowels (also what lip sync drives)
+        "Fcl_MTH_A": {"jawOpen": 1.0, "mouthFunnel": -0.3, "mouthPucker": -0.3},
         "Fcl_MTH_I": {"mouthStretchLeft": 0.5, "mouthStretchRight": 0.5},
+        "Fcl_MTH_U": {"mouthPucker": 1.0},
+        "Fcl_MTH_E": {"mouthLowerDownLeft": 0.5, "mouthLowerDownRight": 0.5, "jawOpen": 0.2},
+        "Fcl_MTH_O": {"mouthFunnel": 1.0},
+        # mouth moods
         "Fcl_MTH_Fun": {"mouthSmileLeft": 0.5, "mouthSmileRight": 0.5},
+        "Fcl_MTH_Sorrow": {"mouthFrownLeft": 0.5, "mouthFrownRight": 0.5},
+        "Fcl_MTH_Angry": {"mouthPressLeft": 0.5, "mouthPressRight": 0.5, "mouthShrugLower": 0.3},
+        "Fcl_MTH_Close": {"mouthClose": 1.0, "mouthRollLower": 0.3, "mouthRollUpper": 0.3},
+        # eyes
         "Fcl_EYE_Close_L": {"eyeBlinkLeft": 1.0},
         "Fcl_EYE_Close_R": {"eyeBlinkRight": 1.0},
-        "Fcl_BRW_Surprised": {"browInnerUp": 1.0},
+        "Fcl_EYE_Joy_L": {"cheekSquintLeft": 1.0, "eyeBlinkLeft": -0.5},
+        "Fcl_EYE_Joy_R": {"cheekSquintRight": 1.0, "eyeBlinkRight": -0.5},
+        "Fcl_EYE_Surprised": {"eyeWideLeft": 0.5, "eyeWideRight": 0.5},
+        "Fcl_EYE_Angry": {"eyeSquintLeft": 0.5, "eyeSquintRight": 0.5},
+        # brows
+        "Fcl_BRW_Surprised": {"browOuterUpLeft": 0.5, "browOuterUpRight": 0.5, "browInnerUp": 0.3},
+        "Fcl_BRW_Sorrow": {"browInnerUp": 1.0, "browOuterUpLeft": -0.5, "browOuterUpRight": -0.5},
         "Fcl_BRW_Angry": {"browDownLeft": 0.5, "browDownRight": 0.5},
+        "Fcl_BRW_Fun": {"mouthSmileLeft": 0.3, "mouthSmileRight": 0.3, "cheekSquintLeft": 0.2,
+                        "cheekSquintRight": 0.2},
     },
     # "arkit": identity map built in Blender for every ARKit-named shape key the mesh has
 }

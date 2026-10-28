@@ -13,6 +13,7 @@ import logging
 
 import numpy as np
 
+from .. import headpose
 from ..filters import fill_gaps, one_euro_bidirectional
 from ..landmarks import ARKIT, IDX, SOLVE_POINTS, derived, limb_lengths
 from ..pipeline import Context
@@ -101,13 +102,22 @@ def run(ctx: Context) -> list:
 
     cam = to_blender_cam(root[:, None, :] + xyz)          # (T,33,3)
     pts = derived(cam)
+    face_crop = d["face_crop"] if "face_crop" in d.files else None
+    head_info = apply_head(pts, d["face_mat"], face_crop, w, h, f, fps)
 
     bs = d["face_bs"].astype(np.float64)
     shapes = {}
     if np.isfinite(bs).any():
         bs = fill_gaps(bs)
         bs = np.clip(one_euro_bidirectional(bs, fps, min_cutoff=2.0, beta=0.5), 0.0, 1.0)
-        shapes = {n: np.round(bs[:, i], 3).tolist() for i, n in enumerate(ARKIT)}
+        shapes = {n: bs[:, i] for i, n in enumerate(ARKIT)}
+    lip_path = ctx.workdir / "lipsync" / "visemes.json"
+    if ctx.cfg["lipsync"]["enabled"] and lip_path.exists():
+        lip = ctx.read_json("lipsync", "visemes.json").get("shapes") or {}
+        if lip:
+            shapes = merge_lipsync(shapes, lip, T, ctx.cfg["lipsync"]["mode"], ctx.cfg["lipsync"]["strength"])
+            log.info("  lip sync merged into the mouth (%s)", ctx.cfg["lipsync"]["mode"])
+    shapes = {n: np.round(np.asarray(v, dtype=float), 3).tolist() for n, v in shapes.items()}
 
     motion = {
         "fps": fps, "width": w, "height": h, "frames": T,
@@ -120,4 +130,42 @@ def run(ctx: Context) -> list:
     }
     log.info("  performer: legs %.2fm torso %.2fm; distance from camera %.1f-%.1fm",
              lengths["leg_m"], lengths["torso_m"], np.nanmin(root[:, 2]), np.nanmax(root[:, 2]))
+    log.info("  head: %s", head_info)
     return [ctx.write_json(S, "motion.json", motion)]
+
+
+def apply_head(pts: dict, face_mat: np.ndarray, face_crop, w: int, h: int, f: float, fps: float) -> str:
+    """Set the head targets: 'head_top' (where the top of the head points) and 'head_side'
+    (the head's left, for its turn). Face-tracked rotation where available, faded into
+    the body-landmark estimate where the face was lost."""
+    body_top = pts["head_top"]
+    body_side = pts["l_ear"]
+    pts["head_side"] = body_side
+    body_up = pts["ear_mid"] - pts["shoulder_mid"]
+    body_left = pts["l_ear"] - pts["r_ear"]
+    res = headpose.head_directions(face_mat, face_crop, w, h, f, fps, body_left, body_up)
+    if res is None:
+        return "from body landmarks (face not tracked)"
+    up, left, conf = res
+    face_top = pts["neck"] + 0.3 * up
+    face_side = face_top + 0.2 * left
+    c = conf[:, None]
+    pts["head_top"] = c * face_top + (1 - c) * body_top
+    pts["head_side"] = c * face_side + (1 - c) * body_side
+    return f"from the face tracker on {int((conf > 0.5).sum())}/{len(conf)} frames"
+
+
+def merge_lipsync(shapes: dict, lip: dict, T: int, mode: str, strength: float) -> dict:
+    """Combine camera-tracked mouth values with audio-driven ones.
+    max: per frame, whichever opens the mouth more · audio: mouth from audio only."""
+    out = dict(shapes)
+
+    def fit(a):
+        a = np.asarray(a, dtype=float)[:T]
+        return np.pad(a, (0, T - len(a)), mode="edge") if 0 < len(a) < T else (a if len(a) else np.zeros(T))
+
+    for name, vals in lip.items():
+        audio = np.clip(fit(vals) * float(strength), 0.0, 1.0)
+        cam_vals = np.asarray(out.get(name, np.zeros(T)), dtype=float)
+        out[name] = audio if mode == "audio" else np.maximum(cam_vals, audio)
+    return out

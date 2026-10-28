@@ -67,6 +67,16 @@ for name, (h, t, _p, r, col) in B.items():
     vg.add(range(len(ob.data.vertices)), 1.0, "REPLACE")
     parts.append(ob)
 
+# a nose (on the head bone) so head turns are visible in renders; the avatar faces -Y
+bpy.ops.mesh.primitive_cone_add(radius1=0.035, depth=0.09, location=(0, -0.14, 1.67), rotation=(1.5708, 0, 0))
+nose = bpy.context.active_object
+bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+nm = bpy.data.materials.new("nose_mat")
+nm.diffuse_color = (0.85, 0.1, 0.1, 1)
+nose.data.materials.append(nm)
+nose.vertex_groups.new(name="J_Bip_C_Head").add(range(len(nose.data.vertices)), 1.0, "REPLACE")
+parts.append(nose)
+
 bpy.ops.object.select_all(action="DESELECT")
 for ob in parts:
     ob.select_set(True)

@@ -48,7 +48,9 @@ def run(ctx: Context) -> list:
     out = media.probe(perf)
     meta = {"width": w, "height": h, "fps": out["fps"], "fps_str": out["fps_str"],
             "frames": out["frames"], "duration": out["duration"], "has_audio": out["has_audio"],
-            "source": inp["performance"]}
+            "source": inp["performance"], "source_size": [src["width"], src["height"]],
+            # exactly how the performance was cut, so other stages can re-read the source in step
+            "trim": trim, "fps_filter": fps_str}
     outputs = [perf]
 
     if inp["clean_plate"]:

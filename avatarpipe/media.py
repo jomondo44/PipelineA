@@ -72,12 +72,16 @@ def probe(path: str | Path) -> dict:
             "duration": dur, "has_audio": a, "rotation": rot}
 
 
-def read_frames(path: str | Path, width: int, height: int, gray: bool = False):
-    """Yield frames (H,W,3 RGB uint8, or H,W gray) decoded by ffmpeg at the given size."""
+def read_frames(path: str | Path, width: int, height: int, gray: bool = False,
+                pre: list | None = None, vf: str | None = None):
+    """Yield frames (H,W,3 RGB uint8, or H,W gray) decoded by ffmpeg at the given size.
+
+    pre: extra input options (e.g. a trim: -ss/-to); vf: filters to run before scaling."""
     pix = "gray" if gray else "rgb24"
     ch = 1 if gray else 3
-    cmd = [require("ffmpeg"), "-v", "error", "-i", str(path),
-           "-vf", f"scale={width}:{height}:flags=area", "-f", "rawvideo", "-pix_fmt", pix, "-"]
+    chain = (vf + "," if vf else "") + f"scale={width}:{height}:flags=area"
+    cmd = [require("ffmpeg"), "-v", "error", *[str(a) for a in (pre or [])], "-i", str(path),
+           "-vf", chain, "-f", "rawvideo", "-pix_fmt", pix, "-"]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=10**7)
     n = width * height * ch
     try:
