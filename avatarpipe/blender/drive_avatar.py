@@ -46,17 +46,47 @@ def clear_scene():
                 coll.remove(block)
 
 
+def _has_op(group, name):
+    # hasattr() is always True on bpy.ops; only dir() lists operators that really exist
+    return name in dir(getattr(bpy.ops, group))
+
+
+def ensure_vrm_addon():
+    """Background Blender loads only add-ons enabled in *saved* preferences. If the VRM
+    add-on is installed but not active here, switch it on for this run."""
+    if _has_op("import_scene", "vrm"):
+        return
+    import addon_utils
+    names = ["bl_ext.blender_org.vrm", "bl_ext.user_default.vrm", "io_scene_vrm",
+             "VRM_Addon_for_Blender-release", "VRM_Addon_for_Blender"]
+    try:
+        names += [m.__name__ for m in addon_utils.modules()
+                  if "vrm" in m.__name__.lower() and m.__name__ not in names]
+    except Exception:  # noqa: BLE001
+        pass
+    for name in names:
+        try:
+            addon_utils.enable(name, default_set=False)
+        except Exception:  # noqa: BLE001
+            continue
+        if _has_op("import_scene", "vrm"):
+            log(f"enabled VRM add-on '{name}' for this run")
+            return
+    fail("Blender can't find the 'VRM format' add-on. In Blender: Edit > Preferences > Get Extensions > "
+         "install 'VRM format', make sure it's enabled, then use the menu at the bottom-left of Preferences > "
+         "Save Preferences, and close Blender. Or export the avatar as .glb instead.")
+
+
 def import_avatar(path, armature_name=None):
     ext = os.path.splitext(path)[1].lower()
     before = set(bpy.data.objects)
     if ext == ".vrm":
-        if not hasattr(bpy.ops.import_scene, "vrm"):
-            fail("VRM import needs the 'VRM format' add-on: Edit > Preferences > Get Extensions > search 'VRM'")
+        ensure_vrm_addon()
         bpy.ops.import_scene.vrm(filepath=path)
     elif ext in (".glb", ".gltf"):
         bpy.ops.import_scene.gltf(filepath=path)
     elif ext == ".fbx":
-        if hasattr(bpy.ops.import_scene, "fbx"):
+        if _has_op("import_scene", "fbx"):
             bpy.ops.import_scene.fbx(filepath=path, automatic_bone_orientation=False)
         else:
             bpy.ops.wm.fbx_import(filepath=path)
