@@ -99,6 +99,9 @@ def run(ctx: Context) -> list:
         xyz *= k
         root *= k
         lengths = {n: v * k for n, v in lengths.items()}
+    feet = feet_in_frame(image)
+    lengths["feet_in_frame"] = round(feet, 3)
+    lengths["full_body"] = bool(feet >= 0.6)
 
     cam = to_blender_cam(root[:, None, :] + xyz)          # (T,33,3)
     pts = derived(cam)
@@ -130,8 +133,22 @@ def run(ctx: Context) -> list:
     }
     log.info("  performer: legs %.2fm torso %.2fm; distance from camera %.1f-%.1fm",
              lengths["leg_m"], lengths["torso_m"], np.nanmin(root[:, 2]), np.nanmax(root[:, 2]))
+    log.info("  feet in frame on %.0f%% of frames: %s", 100 * feet,
+             "full-body shot" if lengths["full_body"] else
+             "closer shot, so the avatar is sized by your torso and no floor is used")
     log.info("  head: %s", head_info)
     return [ctx.write_json(S, "motion.json", motion)]
+
+
+def feet_in_frame(image: np.ndarray, min_vis: float = 0.5) -> float:
+    """Fraction of frames where both ankles are confidently seen inside the picture.
+    Without the feet, leg length and the floor are only guesses."""
+    ids = [IDX["l_ankle"], IDX["r_ankle"]]
+    p = image[:, ids, :]
+    inside = (p[..., 0] >= 0) & (p[..., 0] <= 1) & (p[..., 1] >= 0) & (p[..., 1] <= 1)
+    ok = np.isfinite(p).all(-1) & inside & (p[..., 3] >= min_vis)
+    rows = np.isfinite(p[:, :, :2]).all(axis=(1, 2))
+    return float(ok.all(1)[rows].mean()) if rows.any() else 0.0
 
 
 def apply_head(pts: dict, face_mat: np.ndarray, face_crop, w: int, h: int, f: float, fps: float) -> str:

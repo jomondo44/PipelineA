@@ -73,8 +73,9 @@ This opens a page in your browser at http://127.0.0.1:7860. It only listens on y
 avatarpipe init shots/take1.yaml                 # starter config + footage/ avatars/ folders
 # copy me.mp4 + empty.mp4 into shots/footage, your avatar into shots/avatars, edit the yaml
 avatarpipe doctor shots/take1.yaml               # checks everything before you wait on a render
-avatarpipe run shots/take1.yaml --to solve       # track + solve only (fast)
-avatarpipe preview shots/take1.yaml              # green = tracked joints, orange = 3D solve reprojected
+avatarpipe run shots/take1.yaml --to preview     # track + solve + preview video only (fast)
+                                                 # runs/<project>/preview/tracking_preview.mp4:
+                                                 # green = tracked joints, orange = 3D solve reprojected
 avatarpipe run shots/take1.yaml                  # everything else
 ```
 

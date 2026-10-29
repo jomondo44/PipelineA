@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import shutil
 import subprocess
 import sys
@@ -147,7 +148,7 @@ def cmd_preview(a) -> int:
     from .stages import preview
     ctx = _ctx(a.config)
     if not (ctx.workdir / "track" / "tracking.npz").exists():
-        print("no tracking yet: avatarpipe run <config> --to solve")
+        print("no tracking yet: avatarpipe run <config> --to preview")
         return 1
     preview.run(ctx)
     return 0
@@ -173,6 +174,10 @@ def cmd_clean(a) -> int:
 
 
 def main(argv=None) -> int:
+    # MediaPipe / TensorFlow Lite print harmless C++ warnings; keep only real errors
+    os.environ.setdefault("GLOG_minloglevel", "2")
+    os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+    os.environ.setdefault("ABSL_MIN_LOG_LEVEL", "2")
     p = argparse.ArgumentParser(prog="avatarpipe", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("-v", "--verbose", action="store_true")

@@ -233,6 +233,16 @@ def avatar_leg_length(arm, mapping):
     return (b - a).length + (c - b).length
 
 
+def avatar_torso_length(arm, mapping):
+    """Hips to the middle of the shoulders: same span as the performer's torso_m."""
+    try:
+        h = bone_head_world(arm, mapping["hips"])
+        s = 0.5 * (bone_head_world(arm, mapping["leftUpperArm"]) + bone_head_world(arm, mapping["rightUpperArm"]))
+    except KeyError:
+        return None
+    return (s - h).length
+
+
 def constrain(arm, mapping, targets, drive, twist_axis):
     axis = {"X": "TRACK_X", "-X": "TRACK_NEGATIVE_X", "Z": "TRACK_Z", "-Z": "TRACK_NEGATIVE_Z"}[twist_axis]
     for hname, spec in drive.items():
@@ -316,6 +326,9 @@ def percentile(vals, q):
 
 
 def make_floor(job, cam, engine):
+    if not job["motion"]["performer"].get("full_body", True):
+        log("feet not in frame: no floor or floor shadow for this shot")
+        return None
     pts = job["motion"]["points"]
     zs = []
     for n in ("l_heel", "r_heel", "l_foot_index", "r_foot_index"):
@@ -409,13 +422,18 @@ def main():
     mapping = resolve_rig(arm, job)
     cam = make_camera(job)
 
-    # scale avatar so its legs match yours: keeps feet planted on your footprints
+    # scale the avatar to your proportions: legs when your feet are in frame (keeps them
+    # on your footprints), torso for closer shots (keeps its head and shoulders on yours)
     scale = job["avatar"]["scale"]
     if scale == "auto":
-        leg = avatar_leg_length(arm, mapping)
-        perf = m["performer"]["leg_m"]
-        scale = (perf / leg) if leg and perf and math.isfinite(perf) else 1.0
-        log(f"auto scale: avatar legs {leg or 0:.2f}m -> yours {perf:.2f}m (x{scale:.3f})")
+        perf = m["performer"]
+        full = perf.get("full_body", True)
+        part = "legs" if full else "torso"
+        mine = avatar_leg_length(arm, mapping) if full else avatar_torso_length(arm, mapping)
+        yours = perf["leg_m"] if full else perf["torso_m"]
+        ok = mine and yours and math.isfinite(yours) and yours > 0
+        scale = (yours / mine) if ok else 1.0
+        log(f"auto scale by {part}: avatar {mine or 0:.2f}m -> yours {yours:.2f}m (x{scale:.3f})")
     arm.scale = [s * float(scale) for s in arm.scale]
     bpy.context.view_layer.update()
 

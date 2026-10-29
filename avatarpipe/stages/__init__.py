@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from ..pipeline import Pipeline, Stage
-from . import composite, ingest, lipsync, matte, render, solve, track
+from . import composite, ingest, lipsync, matte, preview, render, solve, track
 
 
 def build() -> Pipeline:
@@ -18,7 +18,9 @@ def build() -> Pipeline:
         Stage("solve", solve.run, sections=("solve", "track.smoothing", "lipsync.enabled", "lipsync.mode",
                                             "lipsync.strength"),
               inputs=solve.inputs, deps=("track", "lipsync"), describe="smooth + place body in 3D camera space",
-              version="2"),
+              version="3"),
+        Stage("preview", lambda ctx: [preview.run(ctx)], deps=("ingest", "solve"),
+              describe="tracking preview video (green = tracked, orange = 3D solve)"),
         Stage("matte", matte.run, sections=("matte",), inputs=matte.inputs, deps=("ingest",),
               enabled=matte.enabled, describe="person matte for paint-out"),
         Stage("render", render.run, sections=("avatar", "blender"), inputs=render.inputs,

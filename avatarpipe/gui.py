@@ -354,7 +354,8 @@ def build(default_config: str) -> "gr.Blocks":
                     b_all = gr.Button("Render everything", variant="primary")
                     b_stop = gr.Button("Stop", variant="stop")
                 with gr.Row():
-                    force_stage = gr.Dropdown(["ingest", "track", "lipsync", "solve", "matte", "render", "composite"],
+                    force_stage = gr.Dropdown(["ingest", "track", "lipsync", "solve", "preview", "matte", "render",
+                                               "composite"],
                                               value="render", label="Rerun one stage even if cached", scale=3)
                     b_force = gr.Button("Rerun stage", scale=1)
                     b_doctor = gr.Button("Check setup (doctor)", scale=1)
@@ -392,8 +393,8 @@ def build(default_config: str) -> "gr.Blocks":
             ev = ev.then(go, cfg_box, log)
             return ev.then(refresh, cfg_box, after)
 
-        wire(b_track, "run", "{cfg}", "--to", "solve")
-        wire(b_prev, "preview", "{cfg}")
+        wire(b_track, "run", "{cfg}", "--to", "preview")
+        wire(b_prev, "run", "{cfg}", "--force", "preview", "--to", "preview")
         wire(b_all, "run", "{cfg}")
         wire(b_doctor, "doctor", "{cfg}")
 

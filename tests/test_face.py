@@ -107,6 +107,18 @@ def test_apply_head_falls_back_to_body():
     np.testing.assert_allclose(pts["head_side"], pts["l_ear"])
 
 
+def test_feet_in_frame_detects_close_shots():
+    _, image, _, _ = tracking(20, 30, 640, 360, 28)
+    image = image.astype(float)
+    assert solve.feet_in_frame(image) == 1.0
+    close = image.copy()
+    close[:, [IDX["l_ankle"], IDX["r_ankle"]], 1] = 1.3     # below the bottom edge
+    assert solve.feet_in_frame(close) == 0.0
+    shy = image.copy()
+    shy[:12, IDX["r_ankle"], 3] = 0.1                        # not confidently seen
+    assert solve.feet_in_frame(shy) == pytest.approx(8 / 20)
+
+
 # ---------------------------------------------------------------- lip sync
 def test_cues_to_frames_places_shapes():
     cues = [{"start": 0.0, "end": 0.5, "value": "X"}, {"start": 0.5, "end": 1.0, "value": "D"},
