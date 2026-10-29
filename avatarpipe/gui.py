@@ -45,6 +45,8 @@ SETTINGS = [
      "Needs Rhubarb Lip Sync (see README). Skipped with a note if it isn't installed"),
     ("lipsync.recognizer", "dropdown", ["pocketSphinx", "phonetic"], "Lip sync language",
      "pocketSphinx: English, most accurate · phonetic: any language"),
+    ("lipsync.strength", "slider", (0.5, 2.5, 0.1), "Lip sync strength",
+     "How wide the mouth opens on speech; above 1 for a more animated mouth"),
     ("lipsync.mode", "dropdown", ["max", "audio"], "Mouth source",
      "max: camera or voice, whichever opens the mouth more · audio: voice only"),
     ("lipsync.executable", "text", None, "Rhubarb program",

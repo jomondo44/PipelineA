@@ -124,10 +124,17 @@ def test_cues_to_frames_places_shapes():
     cues = [{"start": 0.0, "end": 0.5, "value": "X"}, {"start": 0.5, "end": 1.0, "value": "D"},
             {"start": 1.0, "end": 2.0, "value": "F"}]
     out = lipsync.cues_to_frames(cues, 10, 20, smooth=False)
-    assert out["jawOpen"][2] == 0 and out["jawOpen"][7] == 0.9
-    assert out["mouthPucker"][15] == 0.9 and out["jawOpen"][15] == 0
+    assert out["jawOpen"][2] == 0 and out["jawOpen"][7] == 1.0
+    assert out["mouthPucker"][15] == 1.0 and out["jawOpen"][15] == 0
     sm = lipsync.cues_to_frames(cues, 10, 20)
-    assert 0 < sm["jawOpen"][5] < 0.9  # smoothed edge
+    assert 0 < sm["jawOpen"][4] < 1.0  # softened lead-in
+
+
+def test_lipsync_keeps_short_shapes_at_full_strength():
+    for dur in (0.07, 0.1, 0.3):  # 2-9 frames at 30 fps
+        cues = [{"start": 0, "end": 1, "value": "X"}, {"start": 1, "end": 1 + dur, "value": "D"},
+                {"start": 1 + dur, "end": 3, "value": "X"}]
+        assert max(lipsync.cues_to_frames(cues, 30, 90)["jawOpen"]) == 1.0
 
 
 def test_merge_lipsync_modes():

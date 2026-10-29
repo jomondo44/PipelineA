@@ -19,7 +19,6 @@ from pathlib import Path
 import numpy as np
 
 from .. import media
-from ..filters import one_euro_bidirectional
 from ..pipeline import Context
 
 log = logging.getLogger("avatarpipe")
@@ -31,14 +30,14 @@ INSTALL_HINT = ("download Rhubarb Lip Sync from https://github.com/DanielSWolf/r
 # Rhubarb mouth shape -> ARKit-style mouth values
 SHAPES = {
     "X": {},                                                     # rest
-    "A": {"mouthClose": 0.3},                                    # M B P: lips pressed
-    "B": {"jawOpen": 0.12, "mouthStretchLeft": 0.45, "mouthStretchRight": 0.45},   # K S T, "ee"
-    "C": {"jawOpen": 0.45, "mouthLowerDownLeft": 0.35, "mouthLowerDownRight": 0.35},  # "eh", "a" in bat
-    "D": {"jawOpen": 0.9},                                       # "aa" in father
-    "E": {"jawOpen": 0.3, "mouthFunnel": 0.6},                   # "o" in off, "er"
-    "F": {"mouthPucker": 0.9, "mouthFunnel": 0.3},               # "oo", "ow", "w"
-    "G": {"jawOpen": 0.08, "mouthStretchLeft": 0.25, "mouthStretchRight": 0.25, "mouthRollLower": 0.5},  # F V
-    "H": {"jawOpen": 0.5, "mouthLowerDownLeft": 0.2, "mouthLowerDownRight": 0.2},  # long L
+    "A": {"mouthClose": 0.4},                                    # M B P: lips pressed
+    "B": {"jawOpen": 0.2, "mouthStretchLeft": 0.6, "mouthStretchRight": 0.6},      # K S T, "ee"
+    "C": {"jawOpen": 0.6, "mouthLowerDownLeft": 0.45, "mouthLowerDownRight": 0.45},  # "eh", "a" in bat
+    "D": {"jawOpen": 1.0},                                       # "aa" in father
+    "E": {"jawOpen": 0.4, "mouthFunnel": 0.8},                   # "o" in off, "er"
+    "F": {"mouthPucker": 1.0, "mouthFunnel": 0.4},               # "oo", "ow", "w"
+    "G": {"jawOpen": 0.1, "mouthStretchLeft": 0.3, "mouthStretchRight": 0.3, "mouthRollLower": 0.6},  # F V
+    "H": {"jawOpen": 0.65, "mouthLowerDownLeft": 0.3, "mouthLowerDownRight": 0.3},  # long L
 }
 MOUTH = sorted({k for v in SHAPES.values() for k in v})
 
@@ -83,7 +82,11 @@ def cues_to_frames(cues: list[dict], fps: float, frames: int, smooth: bool = Tru
     out = {}
     for k, v in vals.items():
         if smooth and frames > 2:
-            v = one_euro_bidirectional(v, fps, min_cutoff=4.0, beta=0.0)
+            # Soften the hand-offs between shapes without shaving their peaks: speech
+            # shapes often last only 2-4 frames, and a low-pass filter flattens them
+            # into a flapping "sock puppet" mouth
+            soft = np.convolve(np.pad(v, 1, mode="edge"), [0.25, 0.5, 0.25], mode="valid")
+            v = np.maximum(v, soft)
         out[k] = np.round(np.clip(v, 0.0, 1.0), 3).tolist()
     return out
 
