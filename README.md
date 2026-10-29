@@ -56,6 +56,8 @@ pip install -e ".[gui]"
 avatarpipe gui shots/take1.yaml
 ```
 
+On Windows you can double-click **`start_gui.bat`** instead, or copy it to your desktop. It turns on the venv, pulls updates, and starts the GUI. If the GUI is already running, it just opens the browser. You can change the project folder, shot file and port at the top of the file.
+
 This opens a page in your browser at http://127.0.0.1:7860. It only listens on your own machine. It has four tabs:
 
 1. **Footage & avatar**: choose your clips and avatar. They're copied into the shot's `footage/` and `avatars/` folders.
